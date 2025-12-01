@@ -1,0 +1,19 @@
+{
+  "server_name": "directory-intelligence-server",
+  "host": "127.0.0.1",
+  "port": 8000,
+  "log_level": "INFO",
+  "description": "FastMCP server for Directory Intelligence Tool",
+  "version": "1.0.0",
+  "fastmcp_config": {
+    "enable_cors": true,
+    "cors_origins": ["*"],
+    "max_request_size": "10MB",
+    "timeout": 30
+  },
+  "tool_config": {
+    "default_expand_large": false,
+    "max_file_count": 50,
+    "enable_warnings": true
+  }
+}

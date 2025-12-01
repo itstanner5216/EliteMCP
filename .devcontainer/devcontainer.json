@@ -1,0 +1,69 @@
+{
+  "name": "Directory Intelligence Tool Development",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "forwardPorts": [8000, 8080, 3000],
+  "portsAttributes": {
+    "8000": {
+      "label": "FastMCP Server",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Sandbox Testing",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "ms-vscode.test-adapter-converter",
+        "ms-python.pytest",
+        "redhat.vscode-xml",
+        "ms-vscode.vscode-json"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.flake8Enabled": true,
+        "python.formatting.provider": "black",
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestArgs": ["test"],
+        "files.watcherExclude": {
+          "**/__pycache__/**": true,
+          "**/.pytest_cache/**": true,
+          "**/.venv/**": true,
+          "**/node_modules/**": true
+        }
+      }
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true
+    }
+  },
+  "containerEnv": {
+    "PYTHONPATH": "/workspace/src",
+    "DAYTONA_API_KEY": "${localEnv:DAYTONA_API_KEY}",
+    "DOCKER_HOST": "unix:///var/run/docker.sock"
+  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "runArgs": [
+    "--privileged"
+  ]
+}
