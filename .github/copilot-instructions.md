@@ -82,7 +82,7 @@ pytest test/test.py -v
 - **pathspec** (≥0.11.0): .gitignore pattern matching
 - **fastmcp** (≥0.4.0): FastMCP server framework
 - **docker** (≥6.0.0): Docker SDK for Python (sandbox fallback)
-- **daytona_sdk**: Daytona SDK for primary sandbox backend
+- **daytona_sdk** (version unspecified): Daytona SDK for primary sandbox backend
 
 ### Development Tools
 - **pytest** (≥7.0.0): Testing framework (optional)
@@ -267,7 +267,7 @@ def function_name(param1: Type1, param2: Type2) -> ReturnType:
 ## Additional Notes
 
 - The project uses XML output extensively - maintain schema consistency
-- Warning taxonomy is important for error reporting - don't break existing types
+- Warning taxonomy has 6 specific types (unreadable_file, unreadable_directory, malformed_gitignore, broken_symlink, symlink_loop, too_many_warnings) - don't break existing types
 - Backend fallback (Daytona → Docker) is a key feature - preserve this behavior
 - Thread safety matters for the sandbox engine - use locks appropriately
 - Configuration loading has specific precedence - respect the existing order
