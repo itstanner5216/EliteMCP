@@ -50,9 +50,9 @@ class SandboxExecutionEngine:
     def _init_daytona(self) -> bool:
         """Initialize Daytona backend."""
         try:
-            from daytona_sdk import DaytonaClient
+            from daytona_sdk import Daytona
             
-            self._client = DaytonaClient()
+            self._client = Daytona()
             logger.info("Daytona client created successfully")
             self._backend_type = "daytona"
             return True

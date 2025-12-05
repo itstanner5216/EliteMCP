@@ -2,7 +2,15 @@
 pathspec>=0.11.0
 fastmcp>=0.4.0
 docker>=6.0.0
-daytona_sdk
+daytona-sdk==0.21.0a4
+
+# Additional dependencies
+numpy==2.3.5
+tree-sitter==0.20.4
+tree-sitter-languages==1.10.2
+fastembed==0.7.3
+watchdog==6.0.0
+sqlite-vec==0.1.6
 
 # NSCCN dependencies
 tree-sitter>=0.20.0,<0.21.0
