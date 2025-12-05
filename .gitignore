@@ -4,6 +4,32 @@
 
 # Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# NSCCN database
+nsccn.db
+nsccn.db-*
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.venv
+env/
+venv/
 *.py[cod]
 *$py.class
 *.so

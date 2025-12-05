@@ -1,0 +1,11 @@
+{
+    "database_path": "nsccn.db",
+    "embedding_model": "nomic-ai/nomic-embed-text-v1.5",
+    "embedding_dim": 256,
+    "rrf_k": 60,
+    "max_traversal_depth": 3,
+    "skeleton_cache_enabled": true,
+    "watch_debounce_ms": 100,
+    "supported_languages": ["python"],
+    "ignore_patterns": ["**/test_*", "**/__pycache__/**", "**/.*"]
+}

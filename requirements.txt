@@ -12,5 +12,13 @@ fastembed==0.7.3
 watchdog==6.0.0
 sqlite-vec==0.1.6
 
+# NSCCN dependencies
+tree-sitter>=0.20.0,<0.21.0
+tree-sitter-languages>=1.10.0
+fastembed>=0.2.0
+sqlite-vec>=0.1.0
+watchdog>=3.0.0
+numpy>=1.24.0
+
 # Dev / test dependencies
 pytest>=7.0.0
