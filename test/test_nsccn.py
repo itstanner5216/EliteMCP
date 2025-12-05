@@ -553,13 +553,17 @@ def generate_token(username: str) -> str:
         self.assertGreater(len(results), 0)
         
         # 2. Get skeleton
-        skeleton = self.tools.read_skeleton(str(Path(self.temp_dir) / 'auth.py'))
+        skeleton_result = self.tools.read_skeleton(str(Path(self.temp_dir) / 'auth.py'))
+        skeleton_data = json.loads(skeleton_result)
         
+        self.assertIn('skeleton', skeleton_data)
+        skeleton = skeleton_data['skeleton']
         self.assertIn('def validate_token', skeleton)
         self.assertIn('...', skeleton)
         
         # 3. Trace downstream from validate_token
-        entity_id = f"func:{self.temp_dir}/auth.py:validate_token"
+        auth_file_path = str(Path(self.temp_dir) / 'auth.py')
+        entity_id = f"func:{auth_file_path}:validate_token"
         trace_result = self.tools.trace_causal_path(entity_id, direction='downstream', depth=2)
         trace_data = json.loads(trace_result)
         

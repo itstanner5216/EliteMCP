@@ -72,7 +72,7 @@ class NSCCNTools:
             file_path: Path to the file to skeletonize
         
         Returns:
-            Compressed view with function/class signatures (bodies replaced with ...)
+            JSON with 'skeleton' field or 'error' field
         """
         try:
             # Check cache first
@@ -83,7 +83,7 @@ class NSCCNTools:
                 try:
                     file_mtime = Path(file_path).stat().st_mtime
                     if file_mtime <= cached['last_modified']:
-                        return cached['content']
+                        return json.dumps({'skeleton': cached['content']}, separators=(',', ':'))
                 except:
                     pass
             
@@ -100,7 +100,7 @@ class NSCCNTools:
             except:
                 pass
             
-            return skeleton
+            return json.dumps({'skeleton': skeleton}, separators=(',', ':'))
             
         except Exception as e:
             logger.error(f"read_skeleton failed: {e}")

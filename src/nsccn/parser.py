@@ -20,10 +20,9 @@ class CodeParser:
     def __init__(self):
         """Initialize the parser with Python language support."""
         self.parser = get_parser('python')
-        self.previous_trees = {}  # Cache for incremental parsing
         logger.debug("CodeParser initialized with Python support")
 
-    def parse_file(self, file_path: str, use_incremental: bool = True) -> Optional[Dict[str, Any]]:
+    def parse_file(self, file_path: str, use_incremental: bool = False) -> Optional[Dict[str, Any]]:
         """
         Parse a Python file and extract entities and edges.
         
@@ -38,11 +37,10 @@ class CodeParser:
             with open(file_path, 'rb') as f:
                 source_code = f.read()
             
-            # Parse with tree-sitter (incremental parsing not used in tree-sitter 0.20 API)
+            # Parse with tree-sitter
+            # Note: Incremental parsing with tree-sitter 0.20 requires different API
+            # Currently disabled for compatibility
             tree = self.parser.parse(source_code)
-            
-            # Cache the tree for future use (note: incremental parsing disabled for now)
-            self.previous_trees[file_path] = tree
             
             # Extract entities and edges
             entities = self._extract_entities(tree, file_path, source_code)
@@ -394,7 +392,6 @@ class CodeParser:
             return None
 
     def invalidate_cache(self, file_path: str) -> None:
-        """Remove cached parse tree for a file."""
-        if file_path in self.previous_trees:
-            del self.previous_trees[file_path]
-            logger.debug(f"Invalidated parse cache for {file_path}")
+        """Remove cached parse tree for a file (currently no-op as caching is disabled)."""
+        # Incremental parsing cache is currently disabled for tree-sitter 0.20 compatibility
+        pass

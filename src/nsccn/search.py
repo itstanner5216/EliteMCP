@@ -174,6 +174,9 @@ class HybridSearchEngine:
             logger.error(f"Semantic search failed: {e}")
             return []
 
+    # Constant for missing entity rank in RRF fusion
+    DEFAULT_MISSING_RANK = 1000
+    
     def _rrf_fuse(self, lexical_ranks: Dict[str, int], semantic_ranks: Dict[str, int], k: int = 60) -> List[tuple]:
         """
         Reciprocal Rank Fusion combining lexical and semantic results.
@@ -192,8 +195,8 @@ class HybridSearchEngine:
         all_entities = set(lexical_ranks.keys()) | set(semantic_ranks.keys())
         
         for entity in all_entities:
-            lex_rank = lexical_ranks.get(entity, 1000)  # Default high rank if missing
-            sem_rank = semantic_ranks.get(entity, 1000)
+            lex_rank = lexical_ranks.get(entity, self.DEFAULT_MISSING_RANK)
+            sem_rank = semantic_ranks.get(entity, self.DEFAULT_MISSING_RANK)
             scores[entity] = 1/(k + lex_rank) + 1/(k + sem_rank)
         
         return sorted(scores.items(), key=lambda x: x[1], reverse=True)
