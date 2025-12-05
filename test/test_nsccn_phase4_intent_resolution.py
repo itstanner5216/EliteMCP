@@ -103,7 +103,7 @@ class TestRRFConstant(unittest.TestCase):
             # Verify score calculation for entity2
             # Score should be: 1/(60+1) + 1/(60+1) = 2/61 ≈ 0.0328
             entity2_score = fused_results[0][1]
-            expected_score = 1/(60+1) + 1/(60+1)  # Appears at rank 1 in both
+            expected_score = 1/(60+1) + 1/(60+2)  # Appears at rank 1 in semantic, rank 2 in lexical
             
             self.assertAlmostEqual(
                 entity2_score, expected_score, places=4,

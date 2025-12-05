@@ -23,16 +23,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from nsccn.parser import CodeParser
 from nsccn.database import NSCCNDatabase
-
-
-def get_edges_by_relation_helper(db, result, relation):
-    """Helper to get edges by relation type (workaround until get_edges_by_relation is implemented)."""
-    all_edges = []
-    if result and 'entities' in result:
-        for entity in result['entities']:
-            edges = db.get_edges_by_source(entity['id'])
-            all_edges.extend(edges)
-    return [e for e in all_edges if e.get('relation') == relation]
+from test_nsccn_helpers import get_edges_by_relation_helper
 
 
 class TestPropagatesErrorEdgeExtraction(unittest.TestCase):

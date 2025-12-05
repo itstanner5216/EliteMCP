@@ -54,8 +54,7 @@ class TestBinaryQuantization(unittest.TestCase):
         """
         # Check if quantization function exists
         self.assertTrue(
-            hasattr(self.embedder, 'quantize_binary') or 
-            'quantize_binary' in dir(self.embedder.__class__.__module__),
+            hasattr(self.embedder, 'quantize_binary'),
             "Binary quantization function should be available"
         )
     
