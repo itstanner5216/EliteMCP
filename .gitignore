@@ -20,13 +20,11 @@ htmlcov/
 
 # IDE
 .vscode/
+*.code-workspace
 .idea/
 *.swp
 *.swo
 *~
-
-# VS Code
-*.code-workspace
 
 # Environment
 .env
