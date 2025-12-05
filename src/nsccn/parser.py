@@ -8,8 +8,8 @@ import logging
 import time
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
-import tree_sitter_python as tspython
-from tree_sitter import Language, Parser, Tree
+from tree_sitter import Tree
+from tree_sitter_languages import get_parser
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,7 @@ class CodeParser:
 
     def __init__(self):
         """Initialize the parser with Python language support."""
-        self.PY_LANGUAGE = Language(tspython.language())
-        self.parser = Parser(self.PY_LANGUAGE)
+        self.parser = get_parser('python')
         self.previous_trees = {}  # Cache for incremental parsing
         logger.debug("CodeParser initialized with Python support")
 
@@ -39,11 +38,10 @@ class CodeParser:
             with open(file_path, 'rb') as f:
                 source_code = f.read()
             
-            # Parse with tree-sitter
-            old_tree = self.previous_trees.get(file_path) if use_incremental else None
-            tree = self.parser.parse(source_code, old_tree)
+            # Parse with tree-sitter (incremental parsing not used in tree-sitter 0.20 API)
+            tree = self.parser.parse(source_code)
             
-            # Cache the tree for future incremental parsing
+            # Cache the tree for future use (note: incremental parsing disabled for now)
             self.previous_trees[file_path] = tree
             
             # Extract entities and edges
@@ -121,7 +119,7 @@ class CodeParser:
             # Build signature
             signature = f"def {func_name}{params_text}"
             if return_type:
-                signature += f" {return_type}"
+                signature += f" -> {return_type}"
             
             # Extract docstring
             docstring = self._extract_docstring(node, source_code)
@@ -363,7 +361,7 @@ class CodeParser:
                     
                     signature = f"{indent_str}def {func_name}{params}"
                     if return_type:
-                        signature += f" {return_type}"
+                        signature += f" -> {return_type}"
                     signature += ":"
                     skeleton_lines.append(signature)
                     
