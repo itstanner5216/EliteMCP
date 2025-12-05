@@ -1,25 +1,85 @@
-# Directory Intelligence Tool
+# EliteMCP - Advanced Code Navigation & Execution
 
-A comprehensive toolkit for analyzing directory structures and executing code in secure sandboxes. This project combines intelligent directory analysis with a secure execution environment for Programmatic Tool Calling (PTC).
+A comprehensive toolkit combining context-efficient code navigation with secure execution and intelligent directory analysis. EliteMCP provides three core capabilities powered by research-backed architectures.
 
 ## Project Overview
 
-This project provides two core capabilities:
+This project provides three core capabilities:
 
-1. **Directory Analysis** - Intelligently analyze directory structures with `.gitignore` awareness, automatic summarization, and robust error handling
-2. **Secure Code Execution** - Execute Python code in isolated sandboxes with Daytona primary backend and Docker fallback
+1. **🧠 NSCCN (Neuro-Symbolic Causal Code Navigator)** - Context-efficient code navigation achieving ~84% token reduction using causal graphs and semantic search
+2. **📁 Directory Analysis** - Intelligently analyze directory structures with `.gitignore` awareness, automatic summarization, and robust error handling
+3. **🔒 Secure Code Execution** - Execute Python code in isolated sandboxes with Daytona primary backend and Docker fallback
 
-**Architecture:** Three integrated components work together to provide a complete solution for filesystem analysis and secure code execution.
+**Architecture:** Four integrated components work together to provide a complete solution for code understanding, navigation, and execution.
 
+- **NSCCN Server** - Causal code graph with hybrid search and incremental indexing
 - **Directory Intelligence Tool** - Core directory analysis engine
-- **FastMCP Server** - Network-accessible interface to the directory tool
+- **FastMCP Server** - Network-accessible interface to tools
 - **Sandbox Execution Engine** - Secure, isolated Python execution environment
 
-[Detailed Architecture →](docs/execution_README.md#architecture)
+[NSCCN Architecture →](docs/nsccn_architecture.md) | [NSCCN Tools →](docs/nsccn_tools.md) | [Execution Architecture →](docs/execution_README.md#architecture)
 
 ## Components
 
-### 1. Directory Intelligence Tool
+### 1. NSCCN (Neuro-Symbolic Causal Code Navigator)
+
+**New!** Context-efficient code navigation system replacing naive file operations with causal graph reasoning.
+
+**Key Features:**
+- **~84% Token Reduction** - Telegraphic Semantic Compression (TSC) preserves structure while removing implementation
+- **Hybrid Search** - Combines lexical (ripgrep) and semantic (embeddings) with RRF fusion
+- **Causal Graph** - Multi-hop reasoning over CALLS and INHERITS edges
+- **Incremental Updates** - Real-time file watching with <100ms update latency
+- **Four Navigation Tools** - Locate → Orient → Trace → Examine workflow
+
+**Quickstart:**
+```bash
+# Initialize index for current directory
+python src/nsccn/server.py --init .
+
+# Start NSCCN server with file watching
+python src/nsccn/server.py --root .
+
+# Get tool information
+python src/nsccn/server.py --info
+```
+
+**Example Usage:**
+```python
+from nsccn import NSCCNServer
+
+# Create and initialize server
+server = NSCCNServer()
+server.initialize(root_path="./src")
+server.build_initial_index("./src")
+
+# Use tools
+from nsccn.tools import NSCCNTools
+tools = NSCCNTools(server.db, server.parser, server.search, server.graph)
+
+# Find entities
+results = tools.search_and_rank("validate JWT token", limit=5)
+
+# Get file skeleton
+skeleton = tools.read_skeleton("src/auth.py")
+
+# Trace dependencies
+trace = tools.trace_causal_path(
+    entity_id="func:src/auth.py:login",
+    direction="downstream",
+    depth=3
+)
+
+# Read specific entity
+code = tools.open_surgical_window(
+    entity_id="func:src/auth.py:validate_token",
+    context_lines=5
+)
+```
+
+[NSCCN Architecture →](docs/nsccn_architecture.md) | [NSCCN Tools Reference →](docs/nsccn_tools.md)
+
+### 2. Directory Intelligence Tool
 
 **File:** `src/directory_tool.py`
 
@@ -44,7 +104,7 @@ xml = get_codebase_structure(".", expand_large=True)
 
 [Detailed Documentation →](docs/directory_tool.md) | [Warning Taxonomy →](docs/directory_tool.md#warning-system) | [Summarization →](docs/directory_tool.md#summary-element)
 
-### 2. FastMCP Server
+### 3. FastMCP Server
 
 **File:** `src/mcp_server.py`
 
@@ -67,7 +127,7 @@ python src/mcp_server.py
 
 [Configuration Guide →](docs/configuration.md) | [FastMCP Integration →](docs/directory_tool.md#as-fastmcp-tool)
 
-### 3. Sandbox Execution Engine
+### 4. Sandbox Execution Engine
 
 **File:** `src/execute_code.py`
 
@@ -100,7 +160,7 @@ result = execute_python(
 
 [Sandbox Documentation →](docs/execution_README.md) | [Backend Selection →](docs/execution_README.md#backend-selection-daytona-first-docker-fallback)
 
-### 4. Development Environment (`.devcontainer/devcontainer.json`)
+### 5. Development Environment (`.devcontainer/devcontainer.json`)
 
 Pre-configured development environment with:
 - Python 3.11 with required dependencies
@@ -109,7 +169,7 @@ Pre-configured development environment with:
 - Port forwarding for FastMCP server
 - Reproducible environment setup
 
-### 5. Test Suite (`test/test.py`)
+### 6. Test Suite (`test/test.py`)
 
 Comprehensive test suite covering:
 - Basic script execution and output capture
