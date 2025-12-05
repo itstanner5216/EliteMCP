@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<project_structure>
+  <dir name="enterprise_app">
+    <file>README.md</file>
+    <file>setup.py</file>
+    <file>pyproject.toml</file>
+    <dir name="src">
+      <file>__init__.py</file>
+      <dir name="core">
+        <file>__init__.py</file>
+        <file>config.py</file>
+        <file>database.py</file>
+      </dir>
+      <dir name="api">
+        <summary count="156"/>
+      </dir>
+      <dir name="utils">
+        <file>__init__.py</file>
+        <file>helpers.py</file>
+        <file>validators.py</file>
+      </dir>
+    </dir>
+    <dir name="tests">
+      <summary count="234"/>
+    </dir>
+    <dir name="docs">
+      <file>api_reference.md</file>
+      <file>user_guide.md</file>
+      <dir name="examples">
+        <file>basic_usage.py</file>
+        <file>advanced_usage.py</file>
+      </dir>
+    </dir>
+  </dir>
+</project_structure>

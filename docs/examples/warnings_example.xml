@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<project_structure>
+  <dir name="test_project">
+    <file>README.md</file>
+    <file>main.py</file>
+    <dir name="src">
+      <file>app.py</file>
+      <file>config.py</file>
+    </dir>
+    <dir name="logs">
+      <summary count="1047"/>
+    </dir>
+    <dir name="data">
+      <file>dataset.csv</file>
+      <file>output.json</file>
+    </dir>
+  </dir>
+  <warnings>
+    <warning>unreadable_directory: /path/to/test_project/logs/2023-01 - Permission denied</warning>
+    <warning>unreadable_file: /path/to/test_project/secret.key - Permission denied</warning>
+    <warning>symlink_loop: /path/to/test_project/data/link.txt -> /path/to/test_project/data/link.txt</warning>
+    <warning>broken_symlink: /path/to/test_project/docs/missing_ref.txt - Target does not exist</warning>
+    <warning>malformed_gitignore: /path/to/test_project/.gitignore - Invalid pattern syntax at line 3</warning>
+    <warning>too_many_warnings: truncated</warning>
+  </warnings>
+</project_structure>

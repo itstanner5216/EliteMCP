@@ -1,8 +1,107 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    // =========================================================
+    // 🤖 CLAUDE CODE (GOD MODE & LITELLM HOOKS)
+    // =========================================================
+    "claudeCode.allowDangerouslySkipPermissions": true,
+    "claudeCode.initialPermissionMode": "bypassPermissions",
+    "claudeCode.preferredLocation": "sidebar",
+    "claudeCode.selectedModel": "kimi-k2-thinking",
+    "chat.useClaudeSkills": true,
+    
+    // ⚠️ CRITICAL: Environment variables for LiteLLM Connection
+    "claude-code.environmentVariables": [
+      {
+        "name": "ANTHROPIC_BASE_URL",
+        "value": "http://127.0.0.1:4000"
+      },
+      {
+        "name": "ANTHROPIC_AUTH_TOKEN",
+        "value": "sk-litellm-proxy-authed"
+      },
+      {
+        "name": "ANTHROPIC_MODEL",
+        "value": "kimi-k2-thinking-v2"
+      },
+      {
+        "name": "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+        "value": "1"
+      },
+      {
+        "name": "API_TIMEOUT_MS",
+        "value": "1200000"
+      }
+    ],
+
+    // =========================================================
+    // 💻 TERMINAL & WSL OPTIMIZATIONS
+    // =========================================================
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "terminal.integrated.profiles.linux": {
+      "bash": {
+        "path": "/usr/bin/bash",
+        "icon": "terminal-bash"
+      },
+      "zsh": {
+        "path": "zsh"
+      },
+      "fish": {
+        "path": "fish"
+      },
+      "tmux": {
+        "path": "tmux",
+        "icon": "terminal-tmux"
+      },
+      "pwsh": {
+        "path": "pwsh",
+        "icon": "terminal-powershell"
+      }
+    },
+    "terminal.integrated.persistentSessionReviveProcess": "onExitAndWindowClose",
+    "security.allowedUNCHosts": [
+        "wsl.localhost"
+    ],
+
+    // =========================================================
+    // 🔧 UI & GIT PREFERENCES
+    // =========================================================
+    "window.newWindowProfile": "Default",
+    "window.restoreFullscreen": true,
+    "workbench.startupEditor": "none",
+    "workbench.sideBar.location": "right",
+    "workbench.experimental.cloudChanges.partialMatches.enabled": true,
+    
+    "git.autofetch": true,
+    "git.enableSmartCommit": true,
+    
+    // =========================================================
+    // 🧩 EXTENSIONS
+    // =========================================================
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "github.copilot.chat.anthropic.tools.websearch.enabled": true,
+    "gitlens.ai.model": "vscode",
+    "gitlens.ai.vscode.model": "copilot:gpt-4.1",
+    "redhat.telemetry.enabled": false,
+    "ipynb.pasteImagesAsAttachments.enabled": false,
+    
+    // =========================================================
+    // 🛡️ EDITOR & FILE HANDLING
+    // =========================================================
+    "editor.tabCompletion": "on",
+    "editor.dropIntoEditor.preferences": [],
+    "editor.pasteAs.preferences": [],
+    "settingsSync.ignoredExtensions": [
+        "ms-azuretools.vscode-containers"
+    ],
+    "yaml.schemas": {
+        "file:///c%3A/Users/tanne/.vscode-insiders/extensions/continue.continue-1.3.24-win32-x64/config-yaml-schema.json": [
+            ".continue/**/*.yaml"
+        ]
+    }
+  }
 }

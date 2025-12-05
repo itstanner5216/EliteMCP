@@ -17,26 +17,92 @@ The sandbox execution engine provides a way to execute Python code in a complete
 
 ## Architecture
 
-### Backend Selection
+### Backend Selection (Daytona-First, Docker-Fallback)
 
-1. **Daytona (Primary)**: Uses Daytona SDK to create managed workspaces
-   - Provides persistent state across executions
-   - Better performance and resource management
-   - Native workspace filesystem operations
+The execution engine implements a transparent fallback mechanism that prioritizes Daytona but automatically falls back to Docker:
 
-2. **Docker (Fallback)**: Uses Docker containers for isolation
-   - Creates temporary containers with volume mounts
-   - Provides process isolation
-   - Available when Daytona is not installed or configured
+**Backend Selection Algorithm:**
+
+```python
+# Pseudo-code representation
+if Daytona SDK is available:
+    try:
+        Initialize Daytona client
+        Create Daytona workspace
+        return Daytona_backend
+    except Exception:
+        Log Daytona error
+        Try Docker fallback
+
+# Only reach here if Daytona failed or unavailable
+if Docker SDK is available:
+    try:
+        Test Docker connection (docker.ping())
+        Create Docker container
+        return Docker_backend
+    except Exception:
+        Log Docker error
+        raise RuntimeError("No backend available")
+```
+
+**Daytona Backend (Primary):**
+- Used when `daytona-sdk` is installed and accessible
+- Provides persistent state across executions
+- Better performance and resource management
+- Native workspace filesystem operations
+- Supports workspace.remove() for cleanup
+
+**Docker Backend (Fallback):**
+- Used when Daytona is unavailable or fails to initialize
+- Creates temporary containers with volume mounts
+- Provides process isolation through containerization
+- Uses `docker.from_env()` for connection
+- Container stops automatically when done
 
 ### Execution Flow
 
-1. **Backend Initialization**: Automatically detects and initializes available backend
-2. **Workspace Creation**: Creates persistent workspace on first use
-3. **Dependency Installation**: Installs required Python packages (if specified)
-4. **Script Execution**: Writes script to `task.py` and executes in sandbox
-5. **Result Capture**: Captures exit code, stdout, and stderr
-6. **Cleanup**: Provides method to clean up resources when done
+**Step 1: Backend Initialization **
+- Automatic detection of available backends
+- Configuration validation for selected backend
+- Connection testing before proceeding
+
+** Step 2: Workspace Creation (Lazy) **
+- Workspace is created on first `execute_python()` call
+- Reused for subsequent executions (persistent filesystem)
+- Daytona: Uses `DaytonaClient.create_workspace()`
+- Docker: Creates container with volume mount to temp directory
+
+** Step 3: Dependency Installation **
+- Only runs if `requirements` parameter is provided
+- Creates `requirements.txt` in workspace
+- Executes `pip install -r requirements.txt`
+- ** Daytona and Docker have identical failure semantics **
+  - Both check `result.exit_code != 0`
+  - Both decode stdout/stderr with UTF-8, errors="replace"
+  - Both raise `RuntimeError` with decoded output
+
+** Step 4: Script Execution **
+- Script is written to `/workspace/task.py`
+- Executed with `python /workspace/task.py`
+- Fresh interpreter process for each execution (stateless)
+
+** Step 5: Result Capture** (backend-specific)
+
+**Daytona:**
+- Returns object with `exit_code`, `stdout`, `stderr` attributes
+- stdout and stderr are already decoded strings
+- Separate streams preserved
+
+**Docker:**
+- Returns object with `exit_code` and `output` (bytes)
+- `output` contains merged stdout+stderr
+- Must be decoded: `output.decode("utf-8", errors="replace")`
+- `stderr` is always empty string (guaranteed by engine)
+
+**Step 6: Resource Management**
+- Workspace persists until `cleanup_sandbox()` is called
+- Supports graceful shutdown with error handling
+- Backend-specific cleanup (Daytona: remove workspace, Docker: stop container)
 
 ## Interface
 
@@ -77,46 +143,67 @@ All `execute_python` calls are executed sequentially using a `threading.Lock()`.
 3. **Debugging**: Makes it easier to trace execution flow and diagnose issues
 4. **Simplicity**: Reduces complexity of the execution engine
 
-## Persistent Workspace Behavior
+## Workspace Semantics
 
-The sandbox maintains a persistent workspace that survives between executions. This enables:
+### Persistent Filesystem Behavior
 
-### State Persistence
+The workspace provides **filesystem persistence** but **interpreter state reset** between executions:
 
+**What PERSISTS (filesystem):**
+- Files written to `/workspace/` remain accessible across executions
+- Directory structure is maintained
+- File contents persist
+- This applies to both Daytona and Docker backends
+
+**What RESETS (interpreter state):**
+- Python interpreter process starts fresh each time
+- Global variables are cleared
+- Imported modules must be re-imported
+- In-memory state is lost
+
+### Key Implications
+
+1. **File Persistence Example:**
 ```python
-# First execution sets a variable
-result1 = execute_python("x = 42")
-
-# Second execution can access the variable
-result2 = execute_python("print(f'x = {x}')")
-```
-
-### File System Persistence
-
-```python
-# First execution writes a file
+# Execution 1: Write a file
 execute_python("""
 with open('/workspace/data.txt', 'w') as f:
     f.write('Important data')
+print('File written')
 """)
+# Result: File exists in workspace
 
-# Second execution reads the file
+# Execution 2: Read the file
 execute_python("""
 with open('/workspace/data.txt', 'r') as f:
     data = f.read()
-print(f'Read: {data}')
+print(f'Read: {data}')  # Works!
 """)
 ```
 
-### Import Persistence
-
+2. **Variable Non-Persistence Example:**
 ```python
-# First execution installs and imports a module
-execute_python("import json", [])
+# Execution 1: Set a variable
+execute_python("x = 42")
+# Result: Variable x exists only during this execution
 
-# Second execution can use the module without re-importing
-execute_python("print(json.dumps({'key': 'value'}))")
+# Execution 2: Try to access variable
+execute_python("print(x)")
+# Result: NameError - x is not defined
 ```
+
+3. **Import Persistence Example:**
+```python
+# Execution 1: Import a module
+execute_python("import json", [])
+# Result: json module imported for this execution only
+
+# Execution 2: Use the module without explicit import
+execute_python("print(json.dumps({'key': 'value'}'))")
+# Result: NameError - json is not defined (must import again)
+```
+
+**Best Practice:** Always re-import modules and re-initialize variables in each execution.
 
 ## Dependency Installation
 
@@ -132,15 +219,62 @@ print(f'Status: {response.status_code}')
 ```
 
 **Installation Process:**
-1. Creates `requirements.txt` with specified packages
-2. Runs `pip install -r requirements.txt` in sandbox
-3. Installs packages in the sandbox environment
-4. Packages remain available for subsequent executions
 
-**Error Handling:**
-- Installation failures are caught and reported
-- Script execution is aborted if dependencies cannot be installed
-- Clear error messages indicate which packages failed to install
+1. Creates `requirements.txt` with specified packages
+2. Writes file to workspace (`/workspace/requirements.txt`)
+3. Runs `pip install -r requirements.txt` in sandbox
+4. Installs packages in the sandbox environment
+5. Packages remain available for subsequent executions
+
+### Daytona/Docker Parity in Requirement Installation
+
+The execution engine ensures **identical failure semantics** between Daytona and Docker backends:
+
+**Common behavior:**
+- Both check `result.exit_code != 0` after pip install
+- Both decode output with UTF-8, errors="replace"
+- Both raise `RuntimeError` with decoded error message
+- Both use fallback decoding: `(stderr or stdout or "").encode().decode(...)`
+
+**Daytona-specific:**
+- Calls `workspace.exec("pip install ...")`
+- Returns object with `exit_code`, `stdout`, `stderr`
+- All three attributes are already decoded strings
+
+**Docker-specific:**
+- Calls `container.exec_run("pip install ...")`
+- Returns object with `exit_code`, `output` (bytes)
+- `output` must be decoded before error handling
+- `stderr` stream is merged into `output` (Docker limitation)
+
+**Why This Matters:**
+- Scripts behave identically regardless of backend
+- Error messages have consistent format
+- No backend-specific error handling needed in calling code
+- Fallback behavior is transparent to users
+
+**Installation Error Examples:**
+
+```python
+# Example 1: Package not found (same error format on both backends)
+{
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Failed to install requirements: ERROR: Could not find a version that satisfies the requirement nonexistent-package"
+}
+
+# Example 2: Permission error
+{
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Failed to install requirements: ERROR: Could not install packages due to an OSError: [Errno 13] Permission denied"
+}
+```
+
+**Packages are installed per-workspace, not per-execution:**
+- Once installed, packages remain available for subsequent executions
+- No need to reinstall dependencies for each execution
+- Workspace cleanup removes installed packages
 
 ## Example Usage
 

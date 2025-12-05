@@ -3,13 +3,11 @@
 Sandbox Execution Engine for Programmatic Tool Calling (PTC)
 Supports Daytona as primary backend with Docker fallback.
 """
+# Production code module - must not contain runtime testing blocks.
 
 import os
-import sys
 import tempfile
 import threading
-import time
-import json
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
@@ -89,13 +87,16 @@ class SandboxExecutionEngine:
         """Get existing workspace or create a new one."""
         if self._workspace is not None:
             return self._workspace
-            
+
         if self._backend_type == "daytona":
-            return self._create_daytona_workspace()
+            workspace = self._create_daytona_workspace()
         elif self._backend_type == "docker":
-            return self._create_docker_workspace()
+            workspace = self._create_docker_workspace()
         else:
             raise RuntimeError(f"Unknown backend type: {self._backend_type}")
+
+        logger.debug(f"Using backend: {self._backend_type}")
+        return workspace
     
     def _create_daytona_workspace(self) -> Any:
         """Create a Daytona workspace."""
@@ -103,9 +104,35 @@ class SandboxExecutionEngine:
             self._workspace = self._client.create_workspace(image="python:3.11-slim")
             self._workspace_created = True
             logger.info("Daytona workspace created successfully")
+
+            # Verify workspace has required capabilities
+            self._check_daytona_capabilities(self._workspace)
+
             return self._workspace
         except Exception as e:
             raise RuntimeError(f"Failed to create Daytona workspace: {e}")
+
+    def _check_daytona_capabilities(self, workspace: Any) -> None:
+        """Check that Daytona workspace has required API capabilities."""
+        missing = []
+
+        if not hasattr(workspace, 'fs'):
+            missing.append('workspace.fs')
+        else:
+            if not hasattr(workspace.fs, 'write_file'):
+                missing.append('workspace.fs.write_file')
+
+        if not hasattr(workspace, 'exec'):
+            missing.append('workspace.exec')
+
+        if not hasattr(workspace, 'remove'):
+            missing.append('workspace.remove')
+
+        if missing:
+            raise RuntimeError(
+                f"Daytona workspace object is missing required capabilities: {', '.join(missing)}. "
+                "This indicates an unsupported or incomplete Daytona workspace implementation."
+            )
     
     def _create_docker_workspace(self) -> Any:
         """Create a Docker workspace."""
@@ -129,7 +156,12 @@ class SandboxExecutionEngine:
             raise RuntimeError(f"Failed to create Docker workspace: {e}")
     
     def _install_requirements(self, requirements: List[str]) -> None:
-        """Install Python requirements in the sandbox."""
+        """Install Python requirements in the sandbox.
+
+        Daytona and Docker now enforce identical pip-install failure semantics.
+        Daytona uses stderr/stdout decode fallback same as Docker,
+        ensuring deterministic behavior regardless of backend.
+        """
         if not requirements:
             return
             
@@ -139,22 +171,43 @@ class SandboxExecutionEngine:
         req_content = "\n".join(requirements)
         
         if self._backend_type == "daytona":
-            self._workspace.fs.write_file("/workspace/requirements.txt", req_content)
-            result = self._workspace.exec("pip install -r /workspace/requirements.txt")
+            try:
+                self._workspace.fs.write_file("/workspace/requirements.txt", req_content)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to write requirements file in Daytona workspace: {e}"
+                )
+
+            try:
+                result = self._workspace.exec("pip install -r /workspace/requirements.txt")
+
+                if result.exit_code != 0:
+                    decoded = (result.stderr or result.stdout or "").encode().decode("utf-8", errors="replace")
+                    raise RuntimeError(f"Failed to install requirements: {decoded}")
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to install requirements via Daytona exec: {e}"
+                )
         else:  # Docker
             req_path = Path(self._temp_dir) / "requirements.txt"
             req_path.write_text(req_content)
             result = self._workspace.exec_run("pip install -r /workspace/requirements.txt")
-        
+
         if result.exit_code != 0:
-            raise RuntimeError(f"Failed to install requirements: {result.stderr}")
+            decoded = (result.output or b"").decode("utf-8", errors="replace")
+            raise RuntimeError(f"Failed to install requirements: {decoded}")
         
         logger.info("Requirements installed successfully")
     
     def _write_script(self, script: str) -> None:
         """Write Python script to task.py in workspace."""
         if self._backend_type == "daytona":
-            self._workspace.fs.write_file("/workspace/task.py", script)
+            try:
+                self._workspace.fs.write_file("/workspace/task.py", script)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to write script file in Daytona workspace: {e}"
+                )
         else:  # Docker
             script_path = Path(self._temp_dir) / "task.py"
             script_path.write_text(script)
@@ -164,7 +217,16 @@ class SandboxExecutionEngine:
         logger.info("Executing Python script in sandbox")
         
         if self._backend_type == "daytona":
-            result = self._workspace.exec("python /workspace/task.py")
+            try:
+                result = self._workspace.exec("python /workspace/task.py")
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to execute script via Daytona exec: {e}"
+                )
+
+            if result is None:
+                raise RuntimeError("Daytona exec returned None result")
+
             return ExecutionResult(
                 exit_code=result.exit_code,
                 stdout=result.stdout,
@@ -172,10 +234,16 @@ class SandboxExecutionEngine:
             )
         else:  # Docker
             result = self._workspace.exec_run("python /workspace/task.py")
+            if result is None:
+                raise RuntimeError("Docker exec_run returned None result")
+            decoded = (result.output or b"").decode("utf-8", errors="replace")
+
+            # Docker merges stdout+stderr into a single stream (result.output).
+            # The engine guarantees stderr="" for Docker containers.
             return ExecutionResult(
                 exit_code=result.exit_code,
-                stdout=result.output.decode('utf-8') if result.output else "",
-                stderr=result.stderr.decode('utf-8') if result.stderr else ""
+                stdout=decoded,
+                stderr=""
             )
     
     def execute_python(self, script: str, requirements: List[str] = None) -> Dict[str, Any]:
@@ -226,7 +294,10 @@ class SandboxExecutionEngine:
         try:
             if self._backend_type == "daytona":
                 if hasattr(self._workspace, 'remove'):
-                    self._workspace.remove()
+                    try:
+                        self._workspace.remove()
+                    except Exception as e:
+                        logger.error(f"Failed to remove Daytona workspace: {e}")
             else:  # Docker
                 if hasattr(self._workspace, 'stop'):
                     self._workspace.stop()
@@ -281,72 +352,3 @@ def cleanup_sandbox():
     if _execution_engine is not None:
         _execution_engine.cleanup()
         _execution_engine = None
-
-
-# Example usage and testing
-if __name__ == "__main__":
-    print("Testing Sandbox Execution Engine...")
-    
-    # Test 1: Simple Python execution
-    print("\n=== Test 1: Simple Python Execution ===")
-    script1 = """
-import sys
-print("Hello from sandbox!")
-print(f"Python version: {sys.version}")
-"""
-    
-    result1 = execute_python(script1)
-    print(f"Exit code: {result1['exit_code']}")
-    print(f"Stdout: {result1['stdout']}")
-    print(f"Stderr: {result1['stderr']}")
-    
-    # Test 2: Python execution with requirements
-    print("\n=== Test 2: Python Execution with Requirements ===")
-    script2 = """
-import requests
-import json
-
-print("Successfully imported requests and json!")
-print(f"requests version: {requests.__version__}")
-"""
-    
-    result2 = execute_python(script2, ["requests"])
-    print(f"Exit code: {result2['exit_code']}")
-    print(f"Stdout: {result2['stdout']}")
-    print(f"Stderr: {result2['stderr']}")
-    
-    # Test 3: Error handling
-    print("\n=== Test 3: Error Handling ===")
-    script3 = """
-import nonexistent_module
-print("This line won't be reached")
-"""
-    
-    result3 = execute_python(script3)
-    print(f"Exit code: {result3['exit_code']}")
-    print(f"Stdout: {result3['stdout']}")
-    print(f"Stderr: {result3['stderr']}")
-    
-    # Test 4: State persistence
-    print("\n=== Test 4: State Persistence ===")
-    script4a = """
-x = 42
-print(f"Set x = {x}")
-"""
-    
-    script4b = """
-print(f"Value of x is: {x}")
-"""
-    
-    result4a = execute_python(script4a)
-    print(f"First execution - Exit code: {result4a['exit_code']}")
-    print(f"First execution - Stdout: {result4a['stdout']}")
-    
-    result4b = execute_python(script4b)
-    print(f"Second execution - Exit code: {result4b['exit_code']}")
-    print(f"Second execution - Stdout: {result4b['stdout']}")
-    
-    # Cleanup
-    print("\n=== Cleaning up ===")
-    cleanup_sandbox()
-    print("Sandbox execution engine test completed!")

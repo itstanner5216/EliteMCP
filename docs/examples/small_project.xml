@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<project_structure>
+  <dir name="my_web_app">
+    <file>README.md</file>
+    <file>requirements.txt</file>
+    <file>main.py</file>
+    <dir name="static">
+      <file>style.css</file>
+      <file>app.js</file>
+    </dir>
+    <dir name="templates">
+      <file>index.html</file>
+      <file>about.html</file>
+    </dir>
+    <dir name="src">
+      <file>app.py</file>
+      <file>routes.py</file>
+      <file>models.py</file>
+    </dir>
+  </dir>
+</project_structure>

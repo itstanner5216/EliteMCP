@@ -4,63 +4,101 @@ A comprehensive toolkit for analyzing directory structures and executing code in
 
 ## Project Overview
 
-This project consists of three main components:
+This project provides two core capabilities:
 
-1. **Directory Intelligence Tool** - Analyzes directory structures and generates XML representations
-2. **FastMCP Server** - Exposes the directory tool as a FastMCP service
-3. **Sandbox Execution Engine** - Securely executes Python code with Daytona/Docker backends
+1. **Directory Analysis** - Intelligently analyze directory structures with `.gitignore` awareness, automatic summarization, and robust error handling
+2. **Secure Code Execution** - Execute Python code in isolated sandboxes with Daytona primary backend and Docker fallback
+
+**Architecture:** Three integrated components work together to provide a complete solution for filesystem analysis and secure code execution.
+
+- **Directory Intelligence Tool** - Core directory analysis engine
+- **FastMCP Server** - Network-accessible interface to the directory tool
+- **Sandbox Execution Engine** - Secure, isolated Python execution environment
+
+[Detailed Architecture →](docs/execution_README.md#architecture)
 
 ## Components
 
-### 1. Directory Intelligence Tool (`src/directory_tool.py`)
+### 1. Directory Intelligence Tool
 
-A .gitignore-aware directory structure analyzer that generates XML hierarchies with intelligent summarization for large directories.
+**File:** `src/directory_tool.py`
+
+Analyzes directory structures with intelligent summarization and `.gitignore` support.
 
 **Key Features:**
-- Respects `.gitignore` patterns using `pathspec` library
-- Generates structured XML output with `<dir>`, `<file>`, and `<summary>` tags
-- Automatically summarizes directories with more than 50 files
-- Handles edge cases: symlink loops, permission errors, malformed .gitignore
-- Provides both FastMCP tool interface and command-line usage
+- **Warning Taxonomy** - Six warning types for different error conditions (unreadable_file, unreadable_directory, malformed_gitignore, broken_symlink, symlink_loop, too_many_warnings)
+- **Smart Summarization** - Automatically summarizes large directories (>50 files by default) to prevent XML bloat
+- **Deterministic Ignore Precedence** - Clear evaluation order: gitignore patterns → top-level dotdirs → normal scanning
+- **XML Schema** - Structured output with `<dir>`, `<file>`, `<summary>`, and `<warnings>` elements
 
-**Main Function:**
+**Quickstart:**
 ```python
-def get_codebase_structure(root_path: str = ".", expand_large: bool = False) -> str:
-    """Analyze directory structure and return XML representation."""
+from directory_tool import get_codebase_structure
+
+# Analyze current directory
+xml = get_codebase_structure(".")
+
+# Expand large directories
+xml = get_codebase_structure(".", expand_large=True)
 ```
 
-### 2. FastMCP Server (`src/mcp_server.py`)
+[Detailed Documentation →](docs/directory_tool.md) | [Warning Taxonomy →](docs/directory_tool.md#warning-system) | [Summarization →](docs/directory_tool.md#summary-element)
 
-Exposes the Directory Intelligence Tool as a FastMCP service with HTTP transport.
+### 2. FastMCP Server
+
+**File:** `src/mcp_server.py`
+
+Network-accessible FastMCP service exposing the directory tool.
 
 **Key Features:**
-- Configurable server settings via `config/config.json`
-- Automatic Daytona/Docker backend detection
-- HTTP transport for network accessibility
-- Comprehensive error handling and logging
-- Graceful shutdown handling
+- **Configuration Management** - Loads from `config/config.json` with environment variable overrides
+- **Automatic Backend Detection** - Daytona-first with Docker fallback for sandbox execution
+- **Validation** - Comprehensive config validation with clear error messages
 
 **Usage:**
 ```bash
+# Run server
 python src/mcp_server.py
+
+# Server starts on 127.0.0.1:8000 by default
 ```
 
-### 3. Sandbox Execution Engine (`src/execute_code.py`)
+**Note:** Tool-specific config (max_file_count, expand_large) loads but doesn't automatically propagate to DirectoryIntelligenceTool unless explicitly coded.
 
-Secure Python code execution environment with Daytona primary backend and Docker fallback.
+[Configuration Guide →](docs/configuration.md) | [FastMCP Integration →](docs/directory_tool.md#as-fastmcp-tool)
+
+### 3. Sandbox Execution Engine
+
+**File:** `src/execute_code.py`
+
+Secure Python execution with Daytona primary backend and Docker fallback.
 
 **Key Features:**
-- Sequential execution with threading locks
-- Persistent workspace maintains state between calls
-- Dependency installation support
-- Complete host filesystem isolation
-- Comprehensive error handling
+- **Backend Fallback** - Daytona-first, automatic Docker fallback
+- **Persistent Filesystem** - Files written to workspace persist across executions
+- **Daytona/Docker Parity** - Identical pip-install failure semantics across backends
+- **Sequential Execution** - Thread-safe with deterministic order
 
-**Main Function:**
+**Quickstart:**
 ```python
-def execute_python(script: str, requirements: List[str] = None) -> Dict[str, Any]:
-    """Execute Python code in sandboxed environment."""
+from execute_code import execute_python
+
+# Simple execution
+result = execute_python('print("Hello World")')
+
+# With dependencies
+result = execute_python(
+    'import requests; print(requests.get("https://api.example.com").status_code)',
+    requirements=['requests']
+)
 ```
+
+**Workspace Semantics:**
+- Filesystem persists: files remain accessible across executions
+- Interpreter resets: each execution starts fresh (no variable persistence)
+- Best practice: Always re-import modules in each execution
+
+[Sandbox Documentation →](docs/execution_README.md) | [Backend Selection →](docs/execution_README.md#backend-selection-daytona-first-docker-fallback)
 
 ### 4. Development Environment (`.devcontainer/devcontainer.json`)
 

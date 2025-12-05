@@ -1,18 +1,14 @@
 {
   "name": "Directory Intelligence Tool Development",
   "image": "mcr.microsoft.com/devcontainers/python:3.11",
-  "forwardPorts": [8000, 8080, 3000],
+  "forwardPorts": [8000],
   "portsAttributes": {
     "8000": {
       "label": "FastMCP Server",
       "onAutoForward": "notify"
-    },
-    "8080": {
-      "label": "Sandbox Testing",
-      "onAutoForward": "notify"
     }
   },
-  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt",
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt && pip install -e /workspace",
   "customizations": {
     "vscode": {
       "extensions": [
