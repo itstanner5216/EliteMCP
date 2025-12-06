@@ -25,6 +25,10 @@ htmlcov/
 *.swo
 *~
 
+# VS Code
+.vscode/
+*.code-workspace
+
 # Environment
 .env
 .venv
