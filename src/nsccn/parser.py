@@ -189,6 +189,12 @@ class CodeParser:
                 context = f"line:{line_no} type:{mut_type}"
                 edges.append((source_id, 'MUTATES', target_id, context))
 
+        def add_reads_config(config_id: str, line_no: int, access_method: str):
+            if entity_stack:
+                source_id = entity_stack[-1]['id']
+                context = f"line:{line_no} via:{access_method}"
+                edges.append((source_id, 'READS_CONFIG', config_id, context))
+
         def walk(node):
             # Function definitions – push context
             if node.type == 'function_definition':
@@ -258,6 +264,45 @@ class CodeParser:
                                                 target_id = f"attr:{file_path}:{sub_name}"
                                                 add_mutates(target_id, line_no, 'method_call')
 
+                                # READS_CONFIG: Check for os.getenv() or os.environ.get()
+                                obj_node = func_node.child_by_field_name('object')
+                                
+                                # os.getenv('VAR')
+                                if method_name == 'getenv' and obj_node and obj_node.type == 'identifier':
+                                    obj_name = source_code[obj_node.start_byte:obj_node.end_byte].decode('utf-8')
+                                    if obj_name == 'os':
+                                        args_node = node.child_by_field_name('arguments')
+                                        if args_node:
+                                            for arg_child in args_node.children:
+                                                if arg_child.type == 'string':
+                                                    for string_part in arg_child.children:
+                                                        if string_part.type == 'string_content':
+                                                            env_var = source_code[string_part.start_byte:string_part.end_byte].decode('utf-8')
+                                                            config_id = f"config:env:{env_var}"
+                                                            line_no = node.start_point[0] + 1
+                                                            add_reads_config(config_id, line_no, 'os.getenv')
+                                                            break
+                                
+                                # os.environ.get('VAR')
+                                elif method_name == 'get' and obj_node and obj_node.type == 'attribute':
+                                    sub_obj = obj_node.child_by_field_name('object')
+                                    sub_attr = obj_node.child_by_field_name('attribute')
+                                    if sub_obj and sub_attr:
+                                        sub_obj_name = source_code[sub_obj.start_byte:sub_obj.end_byte].decode('utf-8')
+                                        sub_attr_name = source_code[sub_attr.start_byte:sub_attr.end_byte].decode('utf-8')
+                                        if sub_obj_name == 'os' and sub_attr_name == 'environ':
+                                            args_node = node.child_by_field_name('arguments')
+                                            if args_node:
+                                                for arg_child in args_node.children:
+                                                    if arg_child.type == 'string':
+                                                        for string_part in arg_child.children:
+                                                            if string_part.type == 'string_content':
+                                                                env_var = source_code[string_part.start_byte:string_part.end_byte].decode('utf-8')
+                                                                config_id = f"config:env:{env_var}"
+                                                                line_no = node.start_point[0] + 1
+                                                                add_reads_config(config_id, line_no, 'os.environ.get')
+                                                                break
+
                 for child in node.children:
                     walk(child)
                 return
@@ -281,6 +326,40 @@ class CodeParser:
                 for child in node.children:
                     walk(child)
                 return
+
+
+            # READS_CONFIG: os.environ['VAR'] subscript access
+            if node.type == 'subscript':
+                value_node = node.child_by_field_name('value')
+                if value_node and value_node.type == 'attribute':
+                    obj_node = value_node.child_by_field_name('object')
+                    attr_node = value_node.child_by_field_name('attribute')
+                    if obj_node and attr_node:
+                        obj_name = source_code[obj_node.start_byte:obj_node.end_byte].decode('utf-8')
+                        attr_name = source_code[attr_node.start_byte:attr_node.end_byte].decode('utf-8')
+                        if obj_name == 'os' and attr_name == 'environ':
+                            # Extract subscript key (env var name)
+                            for child in node.children:
+                                if child.type == 'string':
+                                    for string_part in child.children:
+                                        if string_part.type == 'string_content':
+                                            env_var = source_code[string_part.start_byte:string_part.end_byte].decode('utf-8')
+                                            config_id = f"config:env:{env_var}"
+                                            line_no = node.start_point[0] + 1
+                                            add_reads_config(config_id, line_no, 'os.environ[]')
+                                            break
+
+            # READS_CONFIG: Uppercase constant references
+            if node.type == 'identifier' and entity_stack:
+                identifier_name = source_code[node.start_byte:node.end_byte].decode('utf-8')
+                # Check if it's an uppercase constant (heuristic: all uppercase, length > 2)
+                if identifier_name.isupper() and len(identifier_name) > 2 and '_' in identifier_name:
+                    # Avoid false positives: skip if it's a class name or in specific contexts
+                    parent = node.parent
+                    if parent and parent.type not in ('class_definition', 'function_definition', 'import_from_statement'):
+                        config_id = f"config:const:{identifier_name}"
+                        line_no = node.start_point[0] + 1
+                        add_reads_config(config_id, line_no, 'constant')
 
             # Recurse for other nodes
             for child in node.children:
