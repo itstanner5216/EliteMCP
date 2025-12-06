@@ -3,6 +3,11 @@ pathspec>=0.11.0
 fastmcp>=0.4.0
 docker>=6.0.0
 daytona_sdk
+numpy>=1.25,<2
+tree-sitter>=0.20.0
+tree-sitter-languages>=1.10.0
+watchdog>=3.0.0
+pyyaml>=6.0
 
 # Dev / test dependencies
 pytest>=7.0.0
