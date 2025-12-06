@@ -237,7 +237,7 @@ Configuration file: `config/nsccn_config.json`
 ## Future Enhancements
 
 - Multi-language support (JavaScript, TypeScript, Go)
-- Additional edge types (MUTATES, PROPAGATES_ERROR)
+- Additional edge types (PROPAGATES_ERROR)
 - Cross-file call resolution
 - IDE integration
 - Performance optimizations (parallel indexing)

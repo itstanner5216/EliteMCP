@@ -76,6 +76,9 @@ class NSCCNDatabase:
             CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(type)
         """)
         
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_edges_relation ON edges(relation)
+        """)
         # Skeletons cache table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS skeletons (
