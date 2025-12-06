@@ -42,6 +42,7 @@ class TestMutatesEdgeExtraction(unittest.TestCase):
         self.parser = CodeParser()
         self.temp_dir = tempfile.mkdtemp()
         self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
+        self.temp_db.close()  # Fix for Windows: close handle so SQLite can open it
         self.db = NSCCNDatabase(self.temp_db.name)
     
     def tearDown(self):
@@ -341,6 +342,7 @@ class TestMutatesGraphTraversal(unittest.TestCase):
         self.parser = CodeParser()
         self.temp_dir = tempfile.mkdtemp()
         self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix='.db')
+        self.temp_db.close()  # Fix for Windows
         self.db = NSCCNDatabase(self.temp_db.name)
     
     def tearDown(self):
